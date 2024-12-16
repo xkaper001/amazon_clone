@@ -8,60 +8,65 @@ import { getError } from "../../logic/utils";
 
 function Login() {
   const navigate = useNavigate();
+  const [socket, setSocket] = useState(null);
+  const [message, setMessage] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
   const [processing, setProcessing] = useState(false);
-  const [socket, setSocket] = useState(null);
-
   const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
-    const socket = new WebSocket("ws://localhost:8000/ws");
+    // Initialize WebSocket connection
+    const ws = new WebSocket("ws://172.25.213.113:8000/ws"); // Replace with your WebSocket server URL
+    console.log("Connecting to WebSocket...");
 
-    socket.onopen = () => {
+    ws.onopen = () => {
       console.log("WebSocket connection established");
+      setSocket(ws);
     };
 
-    socket.onmessage = (event) => {
-      console.log("Message received from server:", event.data);
-      // Handle the received message
+    ws.onerror = (err) => {
+      console.error("WebSocket error:", err);
     };
 
-    socket.onerror = (error) => {
-      console.error("WebSocket error:", error);
-    };
-
-    socket.onclose = () => {
+    ws.onclose = () => {
       console.log("WebSocket connection closed");
+      setSocket(null); // Clear socket reference on close
     };
-
-    setSocket(socket);
 
     return () => {
-      socket.close();
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.close();
+        console.log("WebSocket connection closed during cleanup");
+      }
     };
   }, []);
 
   const signIn = (event) => {
-    setProcessing(true);
     event.preventDefault();
+    setProcessing(true);
 
-    // Firebase Sign In Functionality
     signInWithEmailAndPassword(auth, email, password)
-      .then(async (auth) => {
-        // User Login Successful
-        if (auth) navigate("/");
+      .then((auth) => {
+        // User login successful
+        if (auth) {
+          navigate("/");
+        } else if (socket && socket.readyState === WebSocket.OPEN) {
+          // If login fails and socket is open, send a message
+          console.log("Socket is connected")
+          const dataToSend = { type: "login_error", content: message };
+          socket.send(JSON.stringify(dataToSend));
+          setMessage(""); // Clear the message
+        }
       })
       .catch((err) => {
-        // User Login Unsuccessful
-        console.log("Error")
-        if (socket && socket.readyState === WebSocket.OPEN) {
-          socket.send(JSON.stringify({ type: "login_failed", email }));
-        }
-        setError(getError(err));
-        setProcessing(false);
+        // Login failed
+        console.error("Login error:", err);
+        setError(getError(err.message));
+      })
+      .finally(() => {
+        setProcessing(false); // Always reset processing state
       });
   };
 
@@ -69,7 +74,13 @@ function Login() {
     <div className="login">
       <div className={mounted ? "login__wrapper active" : "login__wrapper"}>
         <Link to="/">
-          <img src={'/assets/icons/logo-dark.png'} alt="amazon" className="login__logo" width={136} height={52} />
+          <img
+            src={"/assets/icons/logo-dark.png"}
+            alt="amazon"
+            className="login__logo"
+            width={136}
+            height={52}
+          />
         </Link>
 
         <div className="login__container">
@@ -108,7 +119,7 @@ function Login() {
               onClick={signIn}
               disabled={processing}
             >
-              Sign In
+              {processing ? "Signing In..." : "Sign In"}
             </button>
           </form>
 

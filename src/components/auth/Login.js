@@ -12,9 +12,37 @@ function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
   const [processing, setProcessing] = useState(false);
+  const [socket, setSocket] = useState(null);
 
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+
+  useEffect(() => {
+    const socket = new WebSocket("ws://localhost:8000/ws");
+
+    socket.onopen = () => {
+      console.log("WebSocket connection established");
+    };
+
+    socket.onmessage = (event) => {
+      console.log("Message received from server:", event.data);
+      // Handle the received message
+    };
+
+    socket.onerror = (error) => {
+      console.error("WebSocket error:", error);
+    };
+
+    socket.onclose = () => {
+      console.log("WebSocket connection closed");
+    };
+
+    setSocket(socket);
+
+    return () => {
+      socket.close();
+    };
+  }, []);
 
   const signIn = (event) => {
     setProcessing(true);
@@ -25,21 +53,15 @@ function Login() {
       .then(async (auth) => {
         // User Login Successful
         if (auth) navigate("/");
-        if (!auth) {
-          await fetch('http://localhost:8000/api/failed-login',{
-            method: 'POST',
-            body: JSON.stringify({email,password}),
-            headers: { 'Content-Type': 'application/json' }
-          })
-          console.log("Data Received");
-          
-        }
       })
       .catch((err) => {
         // User Login Unsuccessful
+        console.log("Error")
+        if (socket && socket.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify({ type: "login_failed", email }));
+        }
+        setError(getError(err));
         setProcessing(false);
-        console.error("Login error:",err);
-        setError(getError(err.message));
       });
   };
 

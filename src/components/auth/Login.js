@@ -43,6 +43,7 @@ function Login() {
           navigate("/");
           setFailedAttempts(0);
           navigate("/");
+          logSecurityEvent("user_login",email,`Login attemp from ${ipAddress}`,ipAddress)
         };
       })
       .catch((err) => {
@@ -50,9 +51,11 @@ function Login() {
         setProcessing(false);
         setFailedAttempts((prev) => prev + 1);
         if (failedAttempts >= 2) {
-          logSecurityEvent("auth_failure_multiple", email, "Multiple failed login attempts", "ipAddress");
+          logSecurityEvent("auth_failure_multiple", email, "Multiple failed login attempts", ipAddress);
+          failedAttempts =0
+
         } else {
-          logSecurityEvent("auth_failure", email, "Failed Security Event", "ipAddress");
+          logSecurityEvent("auth_failure", email, "Failed Security Event", ipAddress);
         }
         setError(getError(err.message));
       });

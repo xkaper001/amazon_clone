@@ -5,16 +5,16 @@ const API_BASE_URL = "http://172.25.209.157:8000"; // Replace with the deployed 
 /**
  * Logs security events by writing them to the backend.
  * @param {string} eventType - The type of event (e.g., "signin", "auth_failure").
- * @param {string} username - The username associated with the event.
+ * @param {string} email - The email associated with the event.
  * @param {string} details - Additional details about the event.
  * @returns {Promise<string>} - Success or error message.
  */
-export const logSecurityEvent = async (eventType, username, details = "", ipAddress = "") => {
+export const logSecurityEvent = async (eventType, email, details = "", ipAddress = "") => {
   try {
     const timestamp = new Date().toISOString(); // Add a timestamp
     const logData = {
         eventType: eventType,
-        username: username,
+        email: email,
         details: details,
         timestamp: timestamp,
         ipAddress: ipAddress,

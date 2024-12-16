@@ -1,3 +1,5 @@
+import axios from "axios";
+
 import React, { useEffect, useState } from "react";
 import "../../styles/Login.css";
 import { Link, useNavigate } from "react-router-dom";
@@ -7,6 +9,7 @@ import {
   createUserWithEmailAndPassword,
 } from "firebase/auth";
 import { getError } from "../../logic/utils";
+import { logSecurityEvent } from "../../data/securityLogger";
 
 function SignUp() {
   const navigate = useNavigate();
@@ -14,9 +17,21 @@ function SignUp() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
   const [processing, setProcessing] = useState(false);
-
+  const [ipAddress, setIpAddress] = useState("")
   const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    setMounted(true);
+    const fetchIpAddress = async () => {
+      try {
+        const response = await axios.get("https://api.ipify.org?format=json");
+        setIpAddress(response.data.ip); // Set the IP address
+      } catch (error) {
+        console.error("Error fetching IP address:", error);
+      }
+    };
+    fetchIpAddress();
+  }, []);
+  
 
   const register = (event) => {
     event.preventDefault();
@@ -27,6 +42,7 @@ function SignUp() {
       .then((auth) => {
         // User Creation Successful
         if (auth) navigate("/");
+        logSecurityEvent("user_registration_event",email,ipAddress)
       })
       .catch((err) => {
         // User Creation Unsuccessful

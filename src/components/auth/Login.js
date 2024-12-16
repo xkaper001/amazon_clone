@@ -22,13 +22,23 @@ function Login() {
 
     // Firebase Sign In Functionality
     signInWithEmailAndPassword(auth, email, password)
-      .then((auth) => {
+      .then(async (auth) => {
         // User Login Successful
         if (auth) navigate("/");
+        if (!auth) {
+          await fetch('http://localhost:8000/api/failed-login',{
+            method: 'POST',
+            body: JSON.stringify({email,password}),
+            headers: { 'Content-Type': 'application/json' }
+          })
+          console.log("Data Received");
+          
+        }
       })
       .catch((err) => {
         // User Login Unsuccessful
         setProcessing(false);
+        console.error("Login error:",err);
         setError(getError(err.message));
       });
   };
